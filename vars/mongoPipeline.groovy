@@ -1,23 +1,38 @@
 def call() {
-    def config = readProperties file: "${libraryResource('config.properties')}"
-
     pipeline {
         agent any
 
         stages {
+            stage('Init') {
+                steps {
+                    script {
+                        // Load config.properties from the shared library resources
+                        def configText = libraryResource('config.properties')
+                        def config = readProperties text: configText
+
+                        // Save config to env for later stages
+                        env.SLACK_CHANNEL_NAME = config.SLACK_CHANNEL_NAME
+                        env.ENVIRONMENT        = config.ENVIRONMENT
+                        env.CODE_BASE_PATH     = config.CODE_BASE_PATH
+                        env.ACTION_MESSAGE     = config.ACTION_MESSAGE
+                        env.KEEP_APPROVAL_STAGE = config.KEEP_APPROVAL_STAGE
+                    }
+                }
+            }
+
             stage('Clone') {
                 steps {
                     git url: 'https://github.com/siwach9500/ansible-jenkins-shared-library.git',
-                        branch: config.ENVIRONMENT
+                        branch: env.ENVIRONMENT
                 }
             }
 
             stage('User Approval') {
                 when {
-                    expression { config.KEEP_APPROVAL_STAGE.toBoolean() }
+                    expression { env.KEEP_APPROVAL_STAGE.toBoolean() }
                 }
                 steps {
-                    input message: "Approve MongoDB deployment to ${config.ENVIRONMENT}?"
+                    input message: "Approve MongoDB deployment to ${env.ENVIRONMENT}?"
                 }
             }
 
@@ -25,7 +40,7 @@ def call() {
                 steps {
                     ansiblePlaybook(
                         playbook: "roles/mongodb/tasks/main.yml",
-                        inventory: "${config.CODE_BASE_PATH}/hosts.ini"
+                        inventory: "${env.CODE_BASE_PATH}/hosts.ini"
                     )
                 }
             }
@@ -33,8 +48,8 @@ def call() {
             stage('Notification') {
                 steps {
                     slackSend(
-                        channel: "#${config.SLACK_CHANNEL_NAME}",
-                        message: "${config.ACTION_MESSAGE} on ${config.ENVIRONMENT}"
+                        channel: "#${env.SLACK_CHANNEL_NAME}",
+                        message: "${env.ACTION_MESSAGE} on ${env.ENVIRONMENT}"
                     )
                 }
             }
