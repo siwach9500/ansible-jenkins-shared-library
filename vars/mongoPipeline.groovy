@@ -40,7 +40,8 @@ def call() {
                 steps {
                     ansiblePlaybook(
                         playbook: "roles/mongodb/tasks/main.yml",
-                        inventory: "${env.CODE_BASE_PATH}/hosts.ini"
+                        inventory: "${env.CODE_BASE_PATH}/hosts.ini",
+                        installation: 'ansible'
                     )
                 }
             }
