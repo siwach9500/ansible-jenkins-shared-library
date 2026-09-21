@@ -38,13 +38,10 @@ def call() {
 
             stage('Playbook Execution') {
                 steps {
-                    ansiblePlaybook(
-                        playbook: "roles/mongodb/tasks/main.yml",
-                        inventory: "${env.CODE_BASE_PATH}/hosts.ini",
-                        installation: 'ansible'
-                    )
+                    sh "ansible-playbook -i ${env.CODE_BASE_PATH}/hosts.ini site.yml --vault-password-file ${env.CODE_BASE_PATH}/vault.yml"
                 }
             }
+
 
             stage('Notification') {
                 steps {
