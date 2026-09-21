@@ -38,7 +38,7 @@ def call() {
 
             stage('Playbook Execution') {
                 steps {
-                    sh "ansible-playbook -i ${env.CODE_BASE_PATH}/hosts.ini site.yml --vault-password-file ~/.ansible_vault_pass"
+                    sh "ansible-playbook -i ${env.CODE_BASE_PATH}/hosts.ini site.yml --vault-password-file /var/lib/jenkins/.ansible_vault_pass"
                 }
             }
 
