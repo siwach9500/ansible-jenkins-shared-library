@@ -1,3 +1,30 @@
+# ---
+# - name: Install MongoDB
+#   hosts: all
+#   become: yes
+
+#   vars_files:
+#     - env/prod/vault.yml
+
+#   tasks:
+#     - name: Add MongoDB repository
+#       apt_repository:
+#         repo: "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/6.0 multiverse"
+#         state: present
+#       when: ansible_os_family == "Debian"
+
+#     - name: Install MongoDB packages
+#       apt:
+#         name: mongodb-org
+#         state: present
+#       when: ansible_os_family == "Debian"
+
+#     - name: Ensure MongoDB is running
+#       service:
+#         name: mongod
+#         state: started
+#         enabled: yes
+
 ---
 - name: Install MongoDB
   hosts: all
@@ -7,20 +34,40 @@
     - env/prod/vault.yml
 
   tasks:
-    - name: Add MongoDB repository
-      apt_repository:
-        repo: "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/6.0 multiverse"
-        state: present
-      when: ansible_os_family == "Debian"
 
-    - name: Install MongoDB packages
-      apt:
+    - name: Install required packages
+      ansible.builtin.apt:
+        name:
+          - gnupg
+          - curl
+          - ca-certificates
+        state: present
+        update_cache: yes
+
+    - name: Download MongoDB GPG key
+      ansible.builtin.get_url:
+        url: https://pgp.mongodb.com/server-6.0.asc
+        dest: /tmp/mongodb-server-6.0.asc
+        mode: '0644'
+
+    - name: Convert MongoDB GPG key to keyring format
+      ansible.builtin.command:
+        cmd: >
+          gpg --dearmor
+          --yes
+          --output /usr/share/keyrings/mongodb-server-6.0.gpg
+          /tmp/mongodb-server-6.0.asc
+      args:
+        creates: /usr/share/keyrings/mongodb-server-6.0.gpg
+
+    - name: Add MongoDB repository
+      ansible.builtin.apt_repository:
+        repo: "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-6.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse"
+        filename: mongodb-org-6.0
+        state: present
+        update_cache: yes
+
+    - name: Install MongoDB
+      ansible.builtin.apt:
         name: mongodb-org
         state: present
-      when: ansible_os_family == "Debian"
-
-    - name: Ensure MongoDB is running
-      service:
-        name: mongod
-        state: started
-        enabled: yes
